@@ -34,7 +34,7 @@ Das Resultat ist eine funktionale und performante Lösung für strategische Duel
 ## 👨‍💻 Entwickler
 
 * **Sandro** – [GitHub Profil](https://github.com/DEIN-LINK)
-* **[Christoph]** – [GitHub Profil](https://github.com/chrisfly97)
+* **Christoph** – [GitHub Profil](https://github.com/chrisfly97)
 
 ---
 *Abschlussprojekt der HTL Anichstraße.*
