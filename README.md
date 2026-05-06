@@ -37,4 +37,4 @@ Das Resultat ist eine funktionale und performante Lösung für strategische Duel
 * **Christoph** – [GitHub Profil](https://github.com/chrisfly97)
 
 ---
-*Abschlussprojekt der HTL Anichstraße.*
+*Abschlussprojekt in FSST der HTL Anichstraße.*
