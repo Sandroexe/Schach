@@ -27,9 +27,9 @@ Das Resultat ist eine funktionale und performante Lösung für strategische Duel
 
 ## 🛠️ Verwendete Technologien
 
-* **Programmiersprache:** [z.B. C# / Java / Python]
-* **Netzwerktechnik:** TCP/IP Sockets
-* **GUI-Framework:** [z.B. WPF / JavaFX / Pygame]
+* **Programmiersprache:** Python
+* **Netzwerktechnik:** TCP / IP Sockets
+* **GUI-Framework:** Pygame / Tkinter
 
 ## 👨‍💻 Entwickler
 
