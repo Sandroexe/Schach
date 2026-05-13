@@ -104,15 +104,21 @@ class ChessBoard:
             return abs(dr) <= 1 and abs(dc) <= 1
 
         if p == "r":
-            return self._clear_path(fr, fc, tr, tc) and (dr == 0 or dc == 0)
+            if not (dr == 0 or dc == 0):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
 
         if p == "b":
-            return self._clear_path(fr, fc, tr, tc) and abs(dr) == abs(dc)
+            if not (abs(dr) == abs(dc)):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
 
         if p == "q":
             straight = dr == 0 or dc == 0
             diagonal = abs(dr) == abs(dc)
-            return self._clear_path(fr, fc, tr, tc) and (straight or diagonal)
+            if not (straight or diagonal):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
 
         return False
 
