@@ -1,273 +1,324 @@
 import tkinter as tk
-from tkinter import font as tkFont
+from chess.board import ChessBoard
 
 
-def show_game_window(mode):
-    """Display main game window for chess game."""
+SQ = 60  # Square size in pixels
+
+
+def show_game_window(mode, network, my_color):
+    """Display the interactive chess game window.
+
+    Args:
+        mode:     'server' or 'client' (used for display only).
+        network:  NetworkManager instance (already started).
+        my_color: 'white' or 'black' — which side this player controls.
+    """
+    chess_board = ChessBoard()
+    selected = [None]       # [row, col] of currently selected piece, or [None]
+    my_turn = [my_color == "white"]   # White always moves first
+
+    # ------------------------------------------------------------------ Window
     window = tk.Tk()
     window.title("CHESS - Game")
     window.geometry("900x700")
     window.resizable(False, False)
     window.configure(bg="#2c2c2c")
-    
-    # ============ TOP STATUS BAR ============
+
+    # ------------------------------------------------------------------ Top bar
     status_frame = tk.Frame(window, bg="#1a1a1a", height=50)
-    status_frame.pack(fill=tk.X, padx=0, pady=0)
-    
-    # Mode label
+    status_frame.pack(fill=tk.X)
+
     mode_label = tk.Label(
         status_frame,
-        text=f"Mode: {mode.upper()}",
+        text=f"Mode: {mode.upper()}  |  Playing as: {my_color.capitalize()}",
         font=("Arial", 12, "bold"),
         bg="#1a1a1a",
         fg="#4CAF50" if mode == "server" else "#2196F3"
     )
     mode_label.pack(side=tk.LEFT, padx=15, pady=10)
-    
-    # Connection status
+
     connection_label = tk.Label(
         status_frame,
-        text="● Connection: Waiting...",
+        text="● Waiting for opponent...",
         font=("Arial", 11, "bold"),
         bg="#1a1a1a",
         fg="#FFC107"
     )
     connection_label.pack(side=tk.RIGHT, padx=15, pady=10)
-    
-    # ============ MAIN CONTENT ============
+
+    # ------------------------------------------------------------------ Content
     content_frame = tk.Frame(window, bg="#2c2c2c")
     content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-    
-    # LEFT SIDE - CHESS BOARD
-    board_frame = tk.Frame(content_frame, bg="#2c2c2c")
-    board_frame.pack(side=tk.LEFT, padx=10)
-    
-    # Board title
+
+    # ---- Left: Board
+    board_outer = tk.Frame(content_frame, bg="#2c2c2c")
+    board_outer.pack(side=tk.LEFT, padx=10)
+
     board_title = tk.Label(
-        board_frame,
-        text="Chess Board",
-        font=("Arial", 14, "bold"),
-        bg="#2c2c2c",
-        fg="white"
+        board_outer, text="Chess Board",
+        font=("Arial", 14, "bold"), bg="#2c2c2c", fg="white"
     )
     board_title.pack(pady=10)
-    
-    # Chess board
+
     canvas = tk.Canvas(
-        board_frame,
-        width=480,
-        height=480,
+        board_outer,
+        width=8 * SQ, height=8 * SQ,
         bg="#333333",
         highlightthickness=2,
         highlightbackground="#555555"
     )
     canvas.pack()
-    
-    # Draw chess board
-    square_size = 60
-    colors = ["#f0d9b5", "#b58863"]
-    
-    for row in range(8):
-        for col in range(8):
-            color = colors[(row + col) % 2]
-            x1 = col * square_size
-            y1 = row * square_size
-            x2 = x1 + square_size
-            y2 = y1 + square_size
-            canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="")
-            
-            # Add coordinates
-            if col == 0:
-                canvas.create_text(5, y1 + 5, text=str(8 - row), fill="#666", font=("Arial", 8, "bold"), anchor="nw")
-            if row == 7:
-                canvas.create_text(x1 + square_size - 5, y1 + square_size - 5, text=chr(97 + col), fill="#666", font=("Arial", 8, "bold"), anchor="se")
-    
-    # Chess piece symbols
-    piece_symbols = {
-        "pawn_white": "♙",
-        "pawn_black": "♟",
-        "rook_white": "♖",
-        "rook_black": "♜",
-        "knight_white": "♘",
-        "knight_black": "♞",
-        "bishop_white": "♗",
-        "bishop_black": "♝",
-        "queen_white": "♕",
-        "queen_black": "♛",
-        "king_white": "♔",
-        "king_black": "♚"
-    }
-    
-    # Draw white pieces (row 1 and 2)
-    # Row 1 (back row): Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
-    white_back_row = [
-        piece_symbols["rook_white"],
-        piece_symbols["knight_white"],
-        piece_symbols["bishop_white"],
-        piece_symbols["queen_white"],
-        piece_symbols["king_white"],
-        piece_symbols["bishop_white"],
-        piece_symbols["knight_white"],
-        piece_symbols["rook_white"]
-    ]
-    
-    for col in range(8):
-        canvas.create_text(col * square_size + 30, 7 * square_size + 30, text=white_back_row[col], font=("Arial", 28), fill="white")
-    
-    # Row 2: White pawns
-    for col in range(8):
-        canvas.create_text(col * square_size + 30, 6 * square_size + 30, text=piece_symbols["pawn_white"], font=("Arial", 28), fill="white")
-    
-    # Draw black pieces (row 8 and 7)
-    # Row 8 (back row): Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook
-    black_back_row = [
-        piece_symbols["rook_black"],
-        piece_symbols["knight_black"],
-        piece_symbols["bishop_black"],
-        piece_symbols["queen_black"],
-        piece_symbols["king_black"],
-        piece_symbols["bishop_black"],
-        piece_symbols["knight_black"],
-        piece_symbols["rook_black"]
-    ]
-    
-    for col in range(8):
-        canvas.create_text(col * square_size + 30, square_size + 30, text=black_back_row[col], font=("Arial", 28), fill="black")
-    
-    # Row 7: Black pawns
-    for col in range(8):
-        canvas.create_text(col * square_size + 30, 2 * square_size + 30, text=piece_symbols["pawn_black"], font=("Arial", 28), fill="black")
-    
-    # RIGHT SIDE - INFO PANEL
+
+    # ---- Right: Info panel
     info_frame = tk.Frame(content_frame, bg="#1a1a1a", width=350)
     info_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10)
-    
-    # ---- Player Info ----
-    players_label = tk.Label(
-        info_frame,
-        text="Players",
-        font=("Arial", 12, "bold"),
-        bg="#1a1a1a",
-        fg="white"
-    )
-    players_label.pack(pady=10)
-    
-    player_frame = tk.Frame(info_frame, bg="#2c2c2c")
-    player_frame.pack(fill=tk.X, padx=10, pady=5)
-    
-    # White player
-    white_frame = tk.Frame(player_frame, bg="#f0d9b5", height=40)
-    white_frame.pack(fill=tk.X, pady=5)
-    white_label = tk.Label(
-        white_frame,
-        text="White (You)" if mode == "server" else "White",
-        font=("Arial", 11, "bold"),
-        bg="#f0d9b5",
-        fg="#333"
-    )
-    white_label.pack(pady=5)
-    
-    # Black player
-    black_frame = tk.Frame(player_frame, bg="#333333", height=40)
-    black_frame.pack(fill=tk.X, pady=5)
-    black_label = tk.Label(
-        black_frame,
-        text="Black" if mode == "server" else "Black (Opponent)",
-        font=("Arial", 11, "bold"),
-        bg="#333333",
-        fg="#f0d9b5"
-    )
-    black_label.pack(pady=5)
-    
-    # ---- Game Status ----
+
+    # Turn / status text
     status_title = tk.Label(
-        info_frame,
-        text="Game Status",
-        font=("Arial", 12, "bold"),
-        bg="#1a1a1a",
-        fg="white"
+        info_frame, text="Game Status",
+        font=("Arial", 12, "bold"), bg="#1a1a1a", fg="white"
     )
-    status_title.pack(pady=(20, 10))
-    
-    status_text = tk.Label(
+    status_title.pack(pady=(20, 5))
+
+    turn_label = tk.Label(
         info_frame,
-        text="Waiting for opponent...",
-        font=("Arial", 10),
+        text="Waiting for connection...",
+        font=("Arial", 11),
         bg="#1a1a1a",
         fg="#FFC107",
-        wraplength=320,
+        wraplength=300,
         justify=tk.LEFT
     )
-    status_text.pack(padx=10, pady=5)
-    
-    # ---- Move History ----
-    history_label = tk.Label(
+    turn_label.pack(padx=10, pady=5)
+
+    check_label = tk.Label(
         info_frame,
-        text="Move History",
+        text="",
         font=("Arial", 12, "bold"),
         bg="#1a1a1a",
-        fg="white"
+        fg="#f44336"
     )
-    history_label.pack(pady=(20, 10))
-    
-    history_frame = tk.Frame(info_frame, bg="#2c2c2c", height=150)
-    history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-    
+    check_label.pack(padx=10, pady=2)
+
+    # Player labels
+    tk.Label(info_frame, text="Players", font=("Arial", 12, "bold"),
+             bg="#1a1a1a", fg="white").pack(pady=(20, 5))
+
+    player_frame = tk.Frame(info_frame, bg="#2c2c2c")
+    player_frame.pack(fill=tk.X, padx=10, pady=5)
+
+    white_frame = tk.Frame(player_frame, bg="#f0d9b5", height=40)
+    white_frame.pack(fill=tk.X, pady=3)
+    tk.Label(
+        white_frame,
+        text="♙ White" + (" (You)" if my_color == "white" else ""),
+        font=("Arial", 11, "bold"), bg="#f0d9b5", fg="#333"
+    ).pack(pady=6)
+
+    black_frame = tk.Frame(player_frame, bg="#333333", height=40)
+    black_frame.pack(fill=tk.X, pady=3)
+    tk.Label(
+        black_frame,
+        text="♟ Black" + (" (You)" if my_color == "black" else ""),
+        font=("Arial", 11, "bold"), bg="#333333", fg="#f0d9b5"
+    ).pack(pady=6)
+
+    # Move history
+    tk.Label(info_frame, text="Move History", font=("Arial", 12, "bold"),
+             bg="#1a1a1a", fg="white").pack(pady=(20, 5))
+
     history_text = tk.Text(
-        history_frame,
-        font=("Courier", 9),
-        bg="#333333",
-        fg="#ffffff",
-        height=10,
-        width=30,
-        state=tk.DISABLED,
-        relief=tk.FLAT,
-        border=1
+        info_frame,
+        font=("Courier", 9), bg="#333333", fg="#ffffff",
+        height=10, width=30,
+        state=tk.DISABLED, relief=tk.FLAT
     )
-    history_text.pack(fill=tk.BOTH, expand=True)
-    
-    # ---- Buttons ----
-    button_frame = tk.Frame(info_frame, bg="#1a1a1a")
-    button_frame.pack(fill=tk.X, padx=10, pady=10)
-    
-    resign_button = tk.Button(
-        button_frame,
-        text="Resign",
-        font=("Arial", 10, "bold"),
-        bg="#f44336",
-        fg="white",
-        cursor="hand2"
-    )
-    resign_button.pack(fill=tk.X, pady=5)
-    
-    draw_button = tk.Button(
-        button_frame,
-        text="Offer Draw",
-        font=("Arial", 10, "bold"),
-        bg="#FF9800",
-        fg="white",
-        cursor="hand2"
-    )
-    draw_button.pack(fill=tk.X, pady=5)
-    
-    # ============ FOOTER ============
+    history_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+    # Buttons
+    btn_frame = tk.Frame(info_frame, bg="#1a1a1a")
+    btn_frame.pack(fill=tk.X, padx=10, pady=10)
+
+    def resign():
+        turn_label.config(text="You resigned.", fg="#f44336")
+        canvas.unbind("<Button-1>")
+
+    tk.Button(
+        btn_frame, text="Resign",
+        font=("Arial", 10, "bold"), bg="#f44336", fg="white",
+        cursor="hand2", command=resign
+    ).pack(fill=tk.X, pady=5)
+
+    # ------------------------------------------------------------------ Footer
     footer_frame = tk.Frame(window, bg="#1a1a1a", height=30)
-    footer_frame.pack(fill=tk.X, padx=0, pady=0)
-    
-    footer_label = tk.Label(
+    footer_frame.pack(fill=tk.X)
+    tk.Label(
         footer_frame,
-        text="Chess Game v1.0 | Ready to play",
-        font=("Arial", 9),
-        bg="#1a1a1a",
-        fg="#999999"
-    )
-    footer_label.pack(pady=5)
-    
+        text="Chess Game v1.0  |  Netzwerk-Schach — HTL Anichstraße",
+        font=("Arial", 9), bg="#1a1a1a", fg="#999999"
+    ).pack(pady=5)
+
+    # ------------------------------------------------------------------ Drawing
+    LIGHT = "#f0d9b5"
+    DARK  = "#b58863"
+    SEL   = "#aad751"   # selected square highlight
+    LAST  = "#cdd96e"   # last-move highlight
+
+    last_move = [None]  # stores (from_pos, to_pos) for highlight
+
+    def col_letter(c): return chr(ord('a') + c)
+
+    def draw_board():
+        canvas.delete("squares")
+        for r in range(8):
+            for c in range(8):
+                base = LIGHT if (r + c) % 2 == 0 else DARK
+                # Highlight last move
+                if last_move[0] and ([r, c] in last_move[0]):
+                    fill = SEL
+                # Highlight selected square
+                elif selected[0] and [r, c] == selected[0]:
+                    fill = SEL
+                else:
+                    fill = base
+                x1, y1 = c * SQ, r * SQ
+                canvas.create_rectangle(x1, y1, x1 + SQ, y1 + SQ,
+                                        fill=fill, outline="", tags="squares")
+                # Rank / file labels
+                if c == 0:
+                    canvas.create_text(x1 + 4, y1 + 4, text=str(8 - r),
+                                       fill="#666", font=("Arial", 8, "bold"),
+                                       anchor="nw", tags="squares")
+                if r == 7:
+                    canvas.create_text(x1 + SQ - 4, y1 + SQ - 4,
+                                       text=col_letter(c),
+                                       fill="#666", font=("Arial", 8, "bold"),
+                                       anchor="se", tags="squares")
+
+    def draw_pieces():
+        canvas.delete("pieces")
+        for r in range(8):
+            for c in range(8):
+                piece = chess_board.get(r, c)
+                if piece:
+                    sym  = chess_board.symbol(piece)
+                    fill = "white" if chess_board.is_white(piece) else "#1a1a1a"
+                    canvas.create_text(
+                        c * SQ + SQ // 2, r * SQ + SQ // 2,
+                        text=sym, font=("Arial", int(SQ * 0.55)),
+                        fill=fill, tags="pieces"
+                    )
+
+    def redraw():
+        draw_board()
+        draw_pieces()
+
+    def add_history(from_pos, to_pos, piece):
+        move_str = f"{chess_board.symbol(piece)}{col_letter(from_pos[1])}{8 - from_pos[0]}" \
+                   f" → {col_letter(to_pos[1])}{8 - to_pos[0]}\n"
+        history_text.config(state=tk.NORMAL)
+        history_text.insert(tk.END, move_str)
+        history_text.see(tk.END)
+        history_text.config(state=tk.DISABLED)
+
+    def update_turn_label():
+        opponent_color = "black" if my_color == "white" else "white"
+        if my_turn[0]:
+            turn_label.config(text="Your turn!", fg="#4CAF50")
+        else:
+            turn_label.config(text="Opponent's turn...", fg="#FFC107")
+        # Check detection
+        if chess_board.is_in_check(my_color):
+            check_label.config(text="⚠ You are in check!")
+        elif chess_board.is_in_check(opponent_color):
+            check_label.config(text="⚠ Opponent in check!")
+        else:
+            check_label.config(text="")
+
+    # ------------------------------------------------------------------ Clicks
+    def on_click(event):
+        if not my_turn[0]:
+            return
+        col = event.x // SQ
+        row = event.y // SQ
+        if not (0 <= row < 8 and 0 <= col < 8):
+            return
+
+        piece = chess_board.get(row, col)
+
+        if selected[0] is None:
+            # Select a piece that belongs to the player
+            if chess_board.owns(piece, my_color):
+                selected[0] = [row, col]
+                redraw()
+        else:
+            from_pos = selected[0]
+            to_pos   = [row, col]
+
+            # Clicking the same square again → deselect
+            if from_pos == to_pos:
+                selected[0] = None
+                redraw()
+                return
+
+            # Clicking another own piece → re-select
+            if chess_board.owns(piece, my_color):
+                selected[0] = [row, col]
+                redraw()
+                return
+
+            # Execute the move
+            moving_piece = chess_board.get(from_pos[0], from_pos[1])
+            add_history(from_pos, to_pos, moving_piece)
+            chess_board.move(from_pos, to_pos)
+            network.send_move(from_pos, to_pos)
+            last_move[0] = (from_pos, to_pos)
+            selected[0] = None
+            my_turn[0]  = False
+            redraw()
+            update_turn_label()
+
+    canvas.bind("<Button-1>", on_click)
+
+    # ------------------------------------------------------------------ Network
+    def on_connected():
+        """Called by NetworkManager once connection is established."""
+        window.after(0, _handle_connected)
+
+    def _handle_connected():
+        connection_label.config(text="● Connected", fg="#4CAF50")
+        update_turn_label()
+
+    def on_move_received(from_pos, to_pos):
+        """Called from the network recv thread — use window.after for thread safety."""
+        window.after(0, lambda: _apply_received(from_pos, to_pos))
+
+    def _apply_received(from_pos, to_pos):
+        piece = chess_board.get(from_pos[0], from_pos[1])
+        add_history(from_pos, to_pos, piece)
+        chess_board.move(from_pos, to_pos)
+        last_move[0] = (from_pos, to_pos)
+        my_turn[0]   = True
+        redraw()
+        update_turn_label()
+
+    network.set_move_callback(on_move_received)
+    network.set_connected_callback(on_connected)
+
+    # If already connected when window opens (client side), trigger immediately
+    if network.connected:
+        _handle_connected()
+
+    # ------------------------------------------------------------------ Init
+    redraw()
+    turn_label.config(text="Waiting for connection...")
     window.mainloop()
 
 
 if __name__ == "__main__":
-    # Test the game window directly
     import sys
+    from connection.network import NetworkManager
+    # Quick local test: python -m gui.game server
     mode = sys.argv[1] if len(sys.argv) > 1 else "server"
-    show_game_window(mode)
+    net  = NetworkManager()
+    show_game_window(mode, net, "white")
