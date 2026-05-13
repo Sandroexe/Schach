@@ -7,18 +7,23 @@ class NetworkManager:
     """Manages a persistent TCP connection between two chess clients.
 
     Protocol: newline-delimited JSON messages.
-    Example message: {"from": [6, 4], "to": [4, 4]}
+    Example message: {"board": [["TW", "SW", "LW", "DW", "KW", "LW", "SW", "TW"], ...]}
     """
 
     def __init__(self):
         self.conn = None
-        self.move_callback = None
+        
+        # anderer Variable name weil es ja ned moves back callt sondern as Ganze Board
+        self.board_callback = None
+        
         self.connected = False
         self.connected_callback = None  # called (with no args) once connection is established
 
-    def set_move_callback(self, cb):
-        """Register a function to call when a move is received: cb(from_pos, to_pos)."""
-        self.move_callback = cb
+    # Komplettes Speil Brett neu "Besetzen" also ned nur den move sondern alles nochmal aufzeichnen
+    
+    def set_board_callback(self, cb):
+        """Register a function to call when a new board state is received: cb(board_matrix)."""
+        self.board_callback = cb
 
     def set_connected_callback(self, cb):
         """Register a function to call once the connection is established."""
@@ -64,18 +69,19 @@ class NetworkManager:
             print(f"[Client] Connection failed: {e}")
             raise
 
-    def send_move(self, from_pos, to_pos):
-        """Send a move to the opponent.
+    # Board Matrix komplett übertragen, nicht nur de Einzelnen Züge
+    
+    def send_board_state(self, board_matrix):
+        """Send the complete board state to the opponent.
 
         Args:
-            from_pos: [row, col] of the piece being moved.
-            to_pos:   [row, col] of the destination square.
+            board_matrix: Ein 2D Array (Liste in Listen) deines Schachbretts.
         """
         if not self.conn:
-            print("[Network] Cannot send move: not connected.")
+            print("[Network] Cannot send board: not connected.")
             return
         try:
-            msg = json.dumps({"from": from_pos, "to": to_pos}) + "\n"
+            msg = json.dumps({"board": board_matrix}) + "\n"
             self.conn.sendall(msg.encode('utf-8'))
         except Exception as e:
             print(f"[Network] Send error: {e}")
@@ -99,8 +105,12 @@ class NetworkManager:
                         continue
                     try:
                         msg = json.loads(line)
-                        if self.move_callback:
-                            self.move_callback(msg["from"], msg["to"])
+                        
+                        # Hier Reaktion auf das Komplette Board, ned nur die einzelnen Züge.
+                        
+                        if self.board_callback and "board" in msg:
+                            self.board_callback(msg["board"])
+                            
                     except json.JSONDecodeError as e:
                         print(f"[Network] Bad message: {line!r} — {e}")
             except Exception as e:

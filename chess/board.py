@@ -1,119 +1,135 @@
-import socket
-import threading
-import json
+"""Chess board state management.
+
+Pieces are stored as single characters:
+  Uppercase = White:  P R N B Q K
+  Lowercase = Black:  p r n b q k
+"""
+
+SYMBOLS = {
+    "P": "♙", "R": "♖", "N": "♘", "B": "♗", "Q": "♕", "K": "♔",
+    "p": "♟", "r": "♜", "n": "♞", "b": "♝", "q": "♛", "k": "♚",
+}
+
+INITIAL_BOARD = [
+    ["r", "n", "b", "q", "k", "b", "n", "r"],
+    ["p", "p", "p", "p", "p", "p", "p", "p"],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    [None, None, None, None, None, None, None, None],
+    ["P", "P", "P", "P", "P", "P", "P", "P"],
+    ["R", "N", "B", "Q", "K", "B", "N", "R"],
+]
 
 
-class NetworkManager:
-    """Manages a persistent TCP connection between two chess clients.
-
-    Protocol: newline-delimited JSON messages.
-    Example message: {"board": [["TW", "SW", "LW", "DW", "KW", "LW", "SW", "TW"], ...]}
-    """
-
+class ChessBoard:
     def __init__(self):
-        self.conn = None
-        
-        # anderer Variable name weil es ja ned moves back callt sondern as Ganze Board
-        self.board_callback = None
-        
-        self.connected = False
-        self.connected_callback = None  # called (with no args) once connection is established
+        # Deep copy so INITIAL_BOARD is never mutated.
+        self.board = [row[:] for row in INITIAL_BOARD]
 
-    # Komplettes Speil Brett neu "Besetzen" also ned nur den move sondern alles nochmal aufzeichnen
-    
-    def set_board_callback(self, cb):
-        """Register a function to call when a new board state is received: cb(board_matrix)."""
-        self.board_callback = cb
+    def get(self, row, col):
+        """Return the piece at (row, col), or None if empty."""
+        return self.board[row][col]
 
-    def set_connected_callback(self, cb):
-        """Register a function to call once the connection is established."""
-        self.connected_callback = cb
+    def move(self, from_pos, to_pos):
+        """Move the piece at from_pos to to_pos. No legality check."""
+        fr, fc = from_pos
+        tr, tc = to_pos
+        piece = self.board[fr][fc]
+        self.board[tr][tc] = piece
+        self.board[fr][fc] = None
 
-    def start_server(self, port=65432):
-        """Bind, listen, and block until one client connects.
+    def symbol(self, piece):
+        """Return the Unicode chess symbol for a piece character."""
+        return SYMBOLS.get(piece, "")
+
+    def is_white(self, piece):
+        return piece is not None and piece.isupper()
+
+    def is_black(self, piece):
+        return piece is not None and piece.islower()
+
+    def owns(self, piece, color):
+        """Return True if piece belongs to the given color ('white' or 'black')."""
+        if piece is None:
+            return False
+        if color == "white":
+            return self.is_white(piece)
+        return self.is_black(piece)
+
+    def find_king(self, color):
+        """Return (row, col) of the king for the given color."""
+        target = "K" if color == "white" else "k"
+        for r in range(8):
+            for c in range(8):
+                if self.board[r][c] == target:
+                    return (r, c)
+        return None
+
+    def is_in_check(self, color):
+        """Return True if the given color's king is currently in check."""
+        king_pos = self.find_king(color)
+        if king_pos is None:
+            return False
+        opponent = "black" if color == "white" else "white"
+        # Check if any opponent piece can capture the king.
+        for r in range(8):
+            for c in range(8):
+                piece = self.board[r][c]
+                if piece and self.owns(piece, opponent):
+                    if self._can_attack(r, c, king_pos[0], king_pos[1]):
+                        return True
+        return False
+
+    def _can_attack(self, fr, fc, tr, tc):
+        """Return True if the piece at (fr, fc) can attack square (tr, tc).
         
-        Call this in a background thread so it does not block the GUI.
+        Basic attack patterns only (no en-passant, no castling).
         """
-        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        srv.bind(('0.0.0.0', port))
-        srv.listen(1)
-        print(f"[Server] Waiting for connection on port {port}...")
+        piece = self.board[fr][fc]
+        if piece is None:
+            return False
+        p = piece.lower()
+        dr = tr - fr
+        dc = tc - fc
 
-        try:
-            self.conn, addr = srv.accept()
-            srv.close()
-            self.connected = True
-            print(f"[Server] Client connected: {addr[0]}")
-            if self.connected_callback:
-                self.connected_callback()
-            threading.Thread(target=self._recv_loop, daemon=True).start()
-        except Exception as e:
-            print(f"[Server] Error accepting connection: {e}")
+        if p == "p":
+            direction = -1 if self.is_white(piece) else 1
+            return dr == direction and abs(dc) == 1
 
-    def connect_to_server(self, ip, port=65432):
-        """Connect to the server at the given IP.
-        
-        Call this in a background thread so it does not block the GUI.
-        """
-        try:
-            self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            print(f"[Client] Connecting to {ip}:{port}...")
-            self.conn.connect((ip, port))
-            self.connected = True
-            print(f"[Client] Connected to {ip}")
-            if self.connected_callback:
-                self.connected_callback()
-            threading.Thread(target=self._recv_loop, daemon=True).start()
-        except Exception as e:
-            print(f"[Client] Connection failed: {e}")
-            raise
+        if p == "n":
+            return (abs(dr), abs(dc)) in [(1, 2), (2, 1)]
 
-    # Board Matrix komplett übertragen, nicht nur de Einzelnen Züge
-    
-    def send_board_state(self, board_matrix):
-        """Send the complete board state to the opponent.
+        if p == "k":
+            return abs(dr) <= 1 and abs(dc) <= 1
 
-        Args:
-            board_matrix: Ein 2D Array (Liste in Listen) deines Schachbretts.
-        """
-        if not self.conn:
-            print("[Network] Cannot send board: not connected.")
-            return
-        try:
-            msg = json.dumps({"board": board_matrix}) + "\n"
-            self.conn.sendall(msg.encode('utf-8'))
-        except Exception as e:
-            print(f"[Network] Send error: {e}")
+        if p == "r":
+            if not (dr == 0 or dc == 0):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
 
-    def _recv_loop(self):
-        """Background thread: continuously reads incoming moves."""
-        buf = ""
-        while True:
-            try:
-                data = self.conn.recv(4096).decode('utf-8')
-                if not data:
-                    print("[Network] Connection closed by peer.")
-                    self.connected = False
-                    break
-                buf += data
-                # Process all complete newline-delimited messages in the buffer.
-                while "\n" in buf:
-                    line, buf = buf.split("\n", 1)
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        msg = json.loads(line)
-                        
-                        # Hier Reaktion auf das Komplette Board, ned nur die einzelnen Züge.
-                        
-                        if self.board_callback and "board" in msg:
-                            self.board_callback(msg["board"])
-                            
-                    except json.JSONDecodeError as e:
-                        print(f"[Network] Bad message: {line!r} — {e}")
-            except Exception as e:
-                print(f"[Network] Receive error: {e}")
-                self.connected = False
-                break
+        if p == "b":
+            if not (abs(dr) == abs(dc)):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
+
+        if p == "q":
+            straight = dr == 0 or dc == 0
+            diagonal = abs(dr) == abs(dc)
+            if not (straight or diagonal):
+                return False
+            return self._clear_path(fr, fc, tr, tc)
+
+        return False
+
+    def _clear_path(self, fr, fc, tr, tc):
+        """Return True if there are no pieces between (fr,fc) and (tr,tc)."""
+        sr = (0 if tr == fr else (1 if tr > fr else -1))
+        sc = (0 if tc == fc else (1 if tc > fc else -1))
+        r, c = fr + sr, fc + sc
+        while (r, c) != (tr, tc):
+            if self.board[r][c] is not None:
+                return False
+            r += sr
+            c += sc
+        return True
