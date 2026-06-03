@@ -1,40 +1,38 @@
-# ♟️ Netzwerk-Schach
+# ♟️ Chess Engine & GUI
 
-Dieses Projekt wurde im Rahmen der Abschlussarbeit an der **HTL Anichstraße** entwickelt. Es handelt sich um eine Multiplayer-Anwendung, die das klassische Schachspiel über eine direkte Netzwerkverbindung zwischen zwei Computern ermöglicht.
+![GitHub License](https://img.shields.io/github/license/Sandroexe/schach?style=flat-square)
+![GitHub Stars](https://img.shields.io/github/stars/Sandroexe/schach?style=flat-square)
+![GitHub Issues](https://img.shields.io/github/issues/Sandroexe/schach?style=flat-square)
 
-## 📖 Projektbeschreibung
+Eine moderne, performante Schach-Anwendung mit grafischer Benutzeroberfläche und integrierter Logikprüfung. Dieses Projekt wurde im Rahmen der technischen Ausbildung entwickelt und fokussiert sich auf saubere Softwarearchitektur, effiziente Zugberechnungen und ein intuitives Design.
 
-Das Kernziel dieses Projekts ist die Verschmelzung von komplexer Spiellogik und moderner Netzwerkkommunikation. Anstatt lokal an einem einzigen PC zu spielen, erlaubt diese Applikation zwei Spielern, über eine Client-Server-Architektur gegeneinander anzutreten.
-
-Dabei wurden zwei wesentliche Herausforderungen umgesetzt:
-1.  **Spiellogik:** Die vollständige Implementierung des Schach-Regelwerks, inklusive der Validierung korrekter Spielzüge und der Erkennung von Spielzuständen wie Schach oder Schachmatt.
-2.  **Synchronisation:** Der Aufbau einer stabilen Socket-Verbindung, um Züge in Echtzeit zwischen den beiden Instanzen zu übertragen, sodass beide Spieler stets denselben Spielstand sehen.
-
-Das Resultat ist eine funktionale und performante Lösung für strategische Duelle im lokalen Netzwerk.
+---
 
 ## ✨ Features
 
-* **Echtzeit-Multiplayer:** Nahtlose Verbindung zwischen zwei PCs.
-* **Automatisierte Zugprüfung:** Das System erkennt eigenständig, ob ein Zug nach den offiziellen Schachregeln erlaubt ist.
-* **Effiziente Kommunikation:** Minimale Latenz bei der Übertragung der Spieldaten durch optimierte Netzwerkprotokolle.
-* **Clean UI:** Eine übersichtliche Benutzeroberfläche, die den Fokus auf das Spielgeschehen legt.
-
-## 🎮 Spielablauf
-
-1.  **Host-Setup:** Ein PC startet das Programm als Server und wartet auf eine Verbindung.
-2.  **Client-Verbindung:** Der zweite PC tritt dem Spiel durch Eingabe der IP-Adresse des Hosts bei.
-3.  **Partie:** Nach erfolgreichem Handshake beginnt die Partie. Die Züge werden abwechselnd validiert und übertragen.
-
-## 🛠️ Verwendete Technologien
-
-* **Programmiersprache:** Python
-* **Netzwerktechnik:** TCP / IP Sockets
-* **GUI-Framework:** Pygame / Tkinter
-
-## 👨‍💻 Entwickler
-
-* **Sandro** – [GitHub Profil](https://github.com/Sandroexe)
-* **Christoph** – [GitHub Profil](https://github.com/chrisfly97)
+* **Vollständiges Regelwerk:** Unterstützung von Rochade (Castling), En Passant, Bauernumwandlung (Promotion) und Remis-Erkennung (Patt, 3-fache Stellungswiederholung).
+* **Grafische Oberfläche:** Klares und flüssiges UI mit Highlighting der gültigen Züge des ausgewählten Steins.
+* **Move Validation:** Integrierte Erkennung von Schach und Schachmatt-Situationen.
+* **Modularer Aufbau:** Strikte Trennung von UI (Frontend) und der zugrundeliegenden Schach-Logik (Backend).
 
 ---
-*Abschlussprojekt in FSST der HTL Anichstraße.*
+
+## 🛠️ Voraussetzungen & Bibliotheken
+
+Um das Projekt zu bauen und auszuführen, werden folgende Abhängigkeiten benötigt:
+
+### Abhängigkeiten (Je nach Implementierung anpassen)
+* **Sprache:** `<z.B. Python 3.10+ / C++17>`
+* **Grafik-Library:** `<z.B. Pygame / SDL2 / Qt>`
+* **Optionale Tools:** `CMake` (falls C/C++ Build-System verwendet wird)
+
+---
+
+## 🚀 Installation & Setup
+
+Folge diesen Schritten, um das Repository lokal einzurichten und zu starten.
+
+### 1. Repository klonen
+```bash
+git clone [https://github.com/Sandroexe/schach.git](https://github.com/Sandroexe/schach.git)
+cd schach
