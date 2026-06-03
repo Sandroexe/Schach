@@ -1,36 +1,67 @@
-# ♟️ Multiplayer Schach - HTL Abschlussarbeit FSST
+# ♟️ Multiplayer Schach
 
-![GitHub License](https://img.shields.io/github/license/Sandroexe/schach?style=flat-square)
-![GitHub Stars](https://img.shields.io/github/stars/Sandroexe/schach?style=flat-square)
-![GitHub Issues](https://img.shields.io/github/issues/Sandroexe/schach?style=flat-square)
+> LAN-Multiplayer-Schach mit grafischer Oberfläche — HTL Abschlussarbeit FSST
 
-Eine moderne, performante Schach-Anwendung mit grafischer Benutzeroberfläche, integrierter Logikprüfung und Netzwerk-Multiplayer. Dieses Projekt wurde als Abschlussarbeit im Fach FSST entwickelt und fokussiert sich auf eine saubere Netzwerk-Architektur, effiziente Zugberechnungen und ein modulares Design.
-
----
-
-## ✨ Features
-
-* **Multiplayer über WLAN/LAN:** Unkomplizierte Verbindung zwischen Server und Client im selben lokalen Netzwerk (Socket-Verbindung).
-* **Grafische Oberfläche:** Simpel, performant und vollkommen modular aufgebautes UI.
-* **Move Validation:** Echtzeit-Erkennung aller regelkonformen Schachzüge (lässt nur valide Züge zu).
-* **Modularer Aufbau:** Strikte Trennung von Netzwerk-Logik, UI (Frontend) und der zugrundeliegenden Schach-Regelprüfung (Backend).
+![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python&logoColor=white)
+![Pygame](https://img.shields.io/badge/Pygame-GUI-green?logo=pygame)
+![License](https://img.shields.io/github/license/Sandroexe/schach?style=flat)
 
 ---
 
-## 🖥️ Unterstützte Systeme & Voraussetzungen
+## Features
 
-Das Projekt ist plattformunabhängig konzipiert und wurde erfolgreich auf folgenden Systemen getestet:
-* **Linux:** CachyOS, Arch Linux, Debian, Ubuntu und Derivate.
-* **Windows:** Windows 10 / 11.
+- **LAN-Multiplayer** — Spiele gegen einen Freund über WLAN/LAN (Socket-Verbindung)
+- **Grafische Oberfläche** — Übersichtliches Schachbrett mit Pygame
+- **Zugvalidierung** — Nur regelkonforme Züge werden zugelassen
+- **Server & Client** — Ein Spieler hostet, der andere verbindet sich
 
 ---
 
-## 🚀 Installation & Setup
+## Installation
 
-Du kannst das Projekt entweder vollautomatisch über das Terminal (empfohlen für Linux) oder Schritt für Schritt manuell einrichten.
-
-### Methode 1: Automatischer Einzeiler (Linux - CachyOS, Arch, Debian, Ubuntu)
-Öffne dein Terminal und füge einfach den folgenden Befehl ein. Das Skript erkennt dein System, installiert alle benötigten Grafik- und Netzwerklibraries und lädt das Spiel in den aktuellen Ordner herunter:
+### Automatisch (Linux / macOS)
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Sandroexe/schach/main/install.sh | bash
+```
+
+### Manuell
+
+```bash
+git clone https://github.com/Sandroexe/schach.git
+cd schach
+pip install pygame
+```
+
+---
+
+## Starten
+
+```bash
+python3 schach.py
+```
+
+Wähle im Menü zwischen **Server** (hostet das Spiel) und **Client** (verbindet sich).
+
+---
+
+## Projektstruktur
+
+```
+schach/
+├── schach.py              # Einstiegspunkt
+├── chess/                 # Schach-Logik & Board
+├── connection/            # Netzwerk (Server/Client, Sockets)
+├── gui/                   # Pygame-Oberfläche & Menü
+│   └── images/            # Figuren & Brett-Texturen
+└── install.sh             # Automatisches Setup-Script
+```
+
+---
+
+## Entwickler
+
+| | Name | GitHub |
+|---|---|---|
+| 👤 | **Sandro Exenberger** | [@Sandroexe](https://github.com/Sandroexe) |
+| 👤 | **Christoph Widner** | [@chrisfly97](https://github.com/chrisfly97) |
