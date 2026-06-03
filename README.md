@@ -33,4 +33,4 @@ Du kannst das Projekt entweder vollautomatisch über das Terminal (empfohlen fü
 Öffne dein Terminal und füge einfach den folgenden Befehl ein. Das Skript erkennt dein System, installiert alle benötigten Grafik- und Netzwerklibraries und lädt das Spiel in den aktuellen Ordner herunter:
 
 ```bash
-curl -sSL [https://raw.githubusercontent.com/Sandroexe/schach/main/install.sh](https://raw.githubusercontent.com/Sandroexe/schach/main/install.sh) | bash
+curl -sSL https://raw.githubusercontent.com/Sandroexe/schach/main/install.sh | bash
