@@ -1,321 +1,114 @@
 #!/bin/bash
 set -e
 
-# ============================================================
-#  Multiplayer Schach – Installer v2.1
-#  Kompatibel mit: Linux (Arch, Debian/Ubuntu, Fedora, openSUSE)
-#                  macOS (Homebrew), Windows (Git Bash / WSL)
-# ============================================================
-
-# ── Farben & Styles ─────────────────────────────────────────
-BOLD='\033[1m'
-DIM='\033[2m'
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-BG_BLUE='\033[44m'
-NC='\033[0m'
-
-# ── Hilfsfunktionen ─────────────────────────────────────────
-
-TOTAL_STEPS=5
-CURRENT_STEP=0
-
-# Fortschrittsbalken (gesamt)
-draw_overall_progress() {
-    local step=$1
-    local total=$2
-    local label="$3"
-    local width=40
-    local filled=$(( step * width / total ))
-    local empty=$(( width - filled ))
-    local percent=$(( step * 100 / total ))
-
-    local bar=""
-    local i
-    for (( i=0; i<filled; i++ )); do bar+="#"; done
-    for (( i=0; i<empty; i++ )); do bar+="-"; done
-
-    printf "\r  ${MAGENTA}${BOLD}Gesamt${NC} ${DIM}[${NC}${GREEN}${bar}${NC}${DIM}]${NC} ${WHITE}%3d%%${NC}  ${DIM}%s${NC}          " "$percent" "$label"
-}
-
-# Simulations-Ladebalken (fuer kurze Aktionen)
-progress_bar() {
-    local label="$1"
-    local duration=${2:-1}
-    local width=30
-    local steps=20
-    local i j
-
-    printf "\n"
-    for (( i=1; i<=steps; i++ )); do
-        local filled=$(( i * width / steps ))
-        local empty=$(( width - filled ))
-        local percent=$(( i * 100 / steps ))
-
-        local bar=""
-        for (( j=0; j<filled; j++ )); do bar+="#"; done
-        for (( j=0; j<empty; j++ )); do bar+="-"; done
-
-        printf "\r    ${CYAN}%-30s${NC} ${DIM}[${NC}${BLUE}%s${NC}${DIM}]${NC} ${WHITE}%3d%%${NC}" "$label" "$bar" "$percent"
-        sleep "$(echo "scale=3; $duration / $steps" | bc 2>/dev/null || echo "0.05")"
-    done
-    printf "\r    ${GREEN}+${NC} %-30s ${DIM}[${NC}${GREEN}%s${NC}${DIM}]${NC} ${WHITE}100%%${NC}\n" "$label" "$(printf '#%.0s' $(seq 1 $width))"
-}
-
-# Spinner fuer laenger laufende Befehle
-spinner() {
-    local pid=$1
-    local label="$2"
-    local chars='|/-\'
-    local i=0
-
-    while kill -0 "$pid" 2>/dev/null; do
-        local c="${chars:$i:1}"
-        printf "\r    ${CYAN}[%s]${NC} %s..." "$c" "$label"
-        i=$(( (i + 1) % ${#chars} ))
-        sleep 0.15
-    done
-
-    wait "$pid" 2>/dev/null
-    local exit_code=$?
-    if [ $exit_code -eq 0 ]; then
-        printf "\r    ${GREEN}[+]${NC} %-50s\n" "$label"
-    else
-        printf "\r    ${RED}[!]${NC} %-50s ${RED}(Fehler!)${NC}\n" "$label"
-        return $exit_code
-    fi
-}
-
-# Schritt-Header
-step_header() {
-    local step_num=$1
-    local total=$2
-    local title="$3"
-    echo ""
-    echo -e "  ${BG_BLUE}${WHITE}${BOLD} SCHRITT ${step_num}/${total} ${NC}  ${BOLD}${title}${NC}"
-    echo -e "  ${DIM}$(printf -- '-%.0s' {1..50})${NC}"
-}
-
-# Betriebssystem erkennen
-detect_os() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-        echo "windows"
-    elif grep -qi "microsoft" /proc/version 2>/dev/null; then
-        echo "wsl"
-    elif [ -f /etc/arch-release ] || grep -qi "cachyos\|endeavour\|manjaro" /etc/os-release 2>/dev/null; then
-        echo "arch"
-    elif [ -f /etc/debian_version ]; then
-        echo "debian"
-    elif [ -f /etc/fedora-release ] || grep -qi "fedora" /etc/os-release 2>/dev/null; then
-        echo "fedora"
-    elif [ -f /etc/SuSE-release ] || grep -qi "opensuse\|suse" /etc/os-release 2>/dev/null; then
-        echo "suse"
-    else
-        echo "unknown"
-    fi
-}
-
-# ── Banner ──────────────────────────────────────────────────
-clear 2>/dev/null || true
 echo ""
-echo -e "  ${BLUE}${BOLD}+--------------------------------------------------+${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}                                                  ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${WHITE}${BOLD} R  N  B  Q  K  B  N  R ${NC}                        ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${WHITE}${BOLD} P  P  P  P  P  P  P  P ${NC}                        ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}                                                  ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${YELLOW}${BOLD}Multiplayer Schach${NC}                              ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${DIM}HTL Abschlussarbeit - Installer v2.1${NC}          ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}                                                  ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${DIM} p  p  p  p  p  p  p  p ${NC}                        ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}   ${DIM} r  n  b  q  k  b  n  r ${NC}                        ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}|${NC}                                                  ${BLUE}${BOLD}|${NC}"
-echo -e "  ${BLUE}${BOLD}+--------------------------------------------------+${NC}"
+echo "========================================="
+echo "  Multiplayer Schach - Installer"
+echo "  HTL Abschlussarbeit"
+echo "========================================="
 echo ""
 
-# ── System erkennen ─────────────────────────────────────────
-OS_TYPE=$(detect_os)
-
-case "$OS_TYPE" in
-    arch)    OS_LABEL="Arch Linux / CachyOS" ;;
-    debian)  OS_LABEL="Debian / Ubuntu" ;;
-    fedora)  OS_LABEL="Fedora" ;;
-    suse)    OS_LABEL="openSUSE" ;;
-    macos)   OS_LABEL="macOS" ;;
-    windows) OS_LABEL="Windows (Git Bash)" ;;
-    wsl)     OS_LABEL="Windows Subsystem for Linux" ;;
-    *)       OS_LABEL="Unbekanntes System" ;;
-esac
-
-echo -e "  ${DIM}System erkannt:${NC} ${CYAN}${BOLD}${OS_LABEL}${NC}"
-echo -e "  ${DIM}Datum:${NC}          ${CYAN}$(date '+%d.%m.%Y - %H:%M Uhr')${NC}"
-echo ""
-
-CURRENT_STEP=0
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Initialisierung..."
-echo ""
-
-# ================================================================
-#  SCHRITT 1: System-Abhaengigkeiten
-# ================================================================
-CURRENT_STEP=1
-step_header $CURRENT_STEP $TOTAL_STEPS "System-Abhaengigkeiten installieren"
-
-install_packages() {
-    case "$OS_TYPE" in
-        arch)
-            sudo pacman -S --needed --noconfirm git python python-pygame >/dev/null 2>&1
-            ;;
-        debian)
-            sudo apt update -qq >/dev/null 2>&1
-            sudo apt install -y -qq git python3 python3-pip python3-pygame >/dev/null 2>&1
-            ;;
-        fedora)
-            sudo dnf install -y -q git python3 python3-pip python3-pygame >/dev/null 2>&1
-            ;;
-        suse)
-            sudo zypper --non-interactive --quiet install git python3 python3-pip python3-pygame >/dev/null 2>&1
-            ;;
-        macos)
-            if ! command -v brew &>/dev/null; then
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null >/dev/null 2>&1
-            fi
-            brew install git python3 pygame >/dev/null 2>&1 || true
-            ;;
-        windows)
-            if command -v pip &>/dev/null || command -v pip3 &>/dev/null; then
-                (pip install pygame 2>/dev/null || pip3 install pygame 2>/dev/null) >/dev/null 2>&1 || true
-            fi
-            ;;
-        wsl)
-            sudo apt update -qq >/dev/null 2>&1
-            sudo apt install -y -qq git python3 python3-pip python3-pygame >/dev/null 2>&1
-            ;;
-        *)
-            # Nichts tun, Warnung kommt unten
-            true
-            ;;
-    esac
-}
-
-if [ "$OS_TYPE" = "unknown" ]; then
-    echo -e "    ${YELLOW}[!]${NC} Unbekanntes System!"
-    echo -e "    ${DIM}    Bitte installiere manuell: git, python3, pygame${NC}"
-elif [ "$OS_TYPE" = "windows" ]; then
-    echo -e "    ${YELLOW}[!]${NC} Windows erkannt."
-    echo -e "    ${DIM}    Stelle sicher, dass Python 3 und Git installiert sind.${NC}"
-    echo -e "    ${DIM}    -> https://www.python.org/downloads/${NC}"
-    install_packages &
-    spinner $! "Pygame via pip installieren"
-else
-    install_packages &
-    spinner $! "Systempakete werden installiert"
+# --- Betriebssystem erkennen ---
+OS="unknown"
+if [ "$(uname)" = "Darwin" ]; then
+    OS="macos"
+elif [ -f /etc/arch-release ] || grep -qi "cachyos\|endeavour\|manjaro" /etc/os-release 2>/dev/null; then
+    OS="arch"
+elif [ -f /etc/debian_version ]; then
+    OS="debian"
+elif [ -f /etc/fedora-release ]; then
+    OS="fedora"
+elif grep -qi "opensuse\|suse" /etc/os-release 2>/dev/null; then
+    OS="suse"
+elif grep -qi "microsoft" /proc/version 2>/dev/null; then
+    OS="debian"
 fi
 
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Pakete installiert"
+echo "[1/4] Systempakete installieren..."
+
+case "$OS" in
+    arch)
+        echo "  -> Arch Linux / CachyOS erkannt"
+        sudo pacman -S --needed --noconfirm git python python-pygame >/dev/null 2>&1
+        ;;
+    debian)
+        echo "  -> Debian / Ubuntu erkannt"
+        sudo apt update -qq >/dev/null 2>&1
+        sudo apt install -y -qq git python3 python3-pip python3-pygame >/dev/null 2>&1
+        ;;
+    fedora)
+        echo "  -> Fedora erkannt"
+        sudo dnf install -y -q git python3 python3-pip python3-pygame >/dev/null 2>&1
+        ;;
+    suse)
+        echo "  -> openSUSE erkannt"
+        sudo zypper --non-interactive --quiet install git python3 python3-pip python3-pygame >/dev/null 2>&1
+        ;;
+    macos)
+        echo "  -> macOS erkannt"
+        if ! command -v brew >/dev/null 2>&1; then
+            echo "  -> Homebrew wird installiert..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null >/dev/null 2>&1
+        fi
+        brew install git python3 pygame >/dev/null 2>&1 || true
+        ;;
+    *)
+        echo "  -> Unbekanntes System. Bitte installiere git, python3 und pygame manuell."
+        ;;
+esac
+echo "  Fertig."
 echo ""
 
-# ================================================================
-#  SCHRITT 2: Python pruefen
-# ================================================================
-CURRENT_STEP=2
-step_header $CURRENT_STEP $TOTAL_STEPS "Python-Umgebung pruefen"
-
+echo "[2/4] Python pruefen..."
 PYTHON_CMD=""
-if command -v python3 &>/dev/null; then
+if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
-elif command -v python &>/dev/null; then
+elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
 if [ -n "$PYTHON_CMD" ]; then
-    PY_VERSION=$($PYTHON_CMD --version 2>&1)
-    echo -e "    ${GREEN}[+]${NC} ${PY_VERSION} gefunden"
+    echo "  -> $($PYTHON_CMD --version 2>&1) gefunden"
 else
-    echo -e "    ${RED}[!]${NC} Python wurde nicht gefunden!"
-    echo -e "    ${DIM}    Bitte installiere Python 3: https://www.python.org/downloads/${NC}"
+    echo "  FEHLER: Python nicht gefunden!"
+    echo "  Bitte installiere Python 3: https://www.python.org/downloads/"
     exit 1
 fi
-
-progress_bar "Python-Umgebung verifiziert" 0.5
-
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Python bereit"
 echo ""
 
-# ================================================================
-#  SCHRITT 3: Repository klonen
-# ================================================================
-CURRENT_STEP=3
-step_header $CURRENT_STEP $TOTAL_STEPS "Repository herunterladen"
-
-REPO_URL="https://github.com/Sandroexe/schach.git"
-
+echo "[3/4] Repository herunterladen..."
 if [ -d "schach" ]; then
-    echo -e "    ${YELLOW}[~]${NC} Ordner 'schach' existiert bereits."
-    (cd schach && git pull --quiet 2>/dev/null) &
-    spinner $! "Repository aktualisieren"
+    echo "  -> Ordner 'schach' existiert bereits, aktualisiere..."
+    cd schach
+    git pull --quiet 2>/dev/null || true
 else
-    git clone --quiet "$REPO_URL" schach >/dev/null 2>&1 &
-    spinner $! "Repository von GitHub klonen"
+    echo "  -> Klone von GitHub..."
+    git clone --quiet https://github.com/Sandroexe/schach.git
+    cd schach
 fi
-
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Repository bereit"
+echo "  Fertig."
 echo ""
 
-# ================================================================
-#  SCHRITT 4: pip-Pakete
-# ================================================================
-CURRENT_STEP=4
-step_header $CURRENT_STEP $TOTAL_STEPS "Python-Abhaengigkeiten installieren"
-
-cd schach
-
+echo "[4/4] Python-Abhaengigkeiten..."
 if [ -f "requirements.txt" ]; then
-    (pip install -r requirements.txt --break-system-packages -q 2>/dev/null || \
-     pip3 install -r requirements.txt --break-system-packages -q 2>/dev/null || \
-     pip install -r requirements.txt -q 2>/dev/null || \
-     pip3 install -r requirements.txt -q 2>/dev/null || true) &
-    spinner $! "Pip-Pakete installieren"
+    echo "  -> Installiere requirements.txt..."
+    pip install -r requirements.txt --break-system-packages -q 2>/dev/null || \
+    pip3 install -r requirements.txt --break-system-packages -q 2>/dev/null || \
+    pip install -r requirements.txt -q 2>/dev/null || \
+    pip3 install -r requirements.txt -q 2>/dev/null || true
+    echo "  Fertig."
 else
-    echo -e "    ${DIM}Keine requirements.txt gefunden -- ueberspringe.${NC}"
-    progress_bar "Abhaengigkeiten geprueft" 0.3
+    echo "  -> Keine requirements.txt gefunden, ueberspringe."
 fi
-
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Abhaengigkeiten bereit"
 echo ""
 
-# ================================================================
-#  SCHRITT 5: Abschluss
-# ================================================================
-CURRENT_STEP=5
-step_header $CURRENT_STEP $TOTAL_STEPS "Installation abschliessen"
-
-progress_bar "Konfiguration finalisieren" 0.4
-progress_bar "Berechtigungen setzen" 0.2
-
-draw_overall_progress $CURRENT_STEP $TOTAL_STEPS "Fertig!"
+echo "========================================="
+echo "  Installation abgeschlossen!"
 echo ""
-
-# ── Abschluss-Banner ───────────────────────────────────────
-PROJ_DIR=$(pwd)
+echo "  Starte das Spiel mit:"
+echo "    cd schach"
+echo "    python3 schach.py"
 echo ""
-echo -e "  ${GREEN}${BOLD}+--------------------------------------------------+${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}                                                  ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}   ${WHITE}${BOLD}INSTALLATION ERFOLGREICH!${NC}                       ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}                                                  ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}   ${DIM}Starte das Spiel mit:${NC}                          ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}                                                  ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}     ${CYAN}${BOLD}cd schach${NC}                                    ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}     ${CYAN}${BOLD}python3 schach.py${NC}                             ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}|${NC}                                                  ${GREEN}${BOLD}|${NC}"
-echo -e "  ${GREEN}${BOLD}+--------------------------------------------------+${NC}"
-echo ""
-echo -e "  ${DIM}Projektordner:${NC} ${CYAN}${PROJ_DIR}${NC}"
-echo -e "  ${DIM}Viel Spass beim Spielen!${NC}"
+echo "  Projektordner: $(pwd)"
+echo "========================================="
 echo ""
