@@ -1,4 +1,4 @@
-# ♟️ Chess Engine & GUI
+# ♟️ Multiplayer Schach - HTL Abschlussarbeit Fsst
 
 ![GitHub License](https://img.shields.io/github/license/Sandroexe/schach?style=flat-square)
 ![GitHub Stars](https://img.shields.io/github/stars/Sandroexe/schach?style=flat-square)
