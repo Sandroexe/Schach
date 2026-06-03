@@ -10,9 +10,9 @@ Eine moderne, performante Schach-Anwendung mit grafischer Benutzeroberfläche un
 
 ## ✨ Features
 
-* **Vollständiges Regelwerk:** Unterstützung von Rochade (Castling), En Passant, Bauernumwandlung (Promotion) und Remis-Erkennung (Patt, 3-fache Stellungswiederholung).
-* **Grafische Oberfläche:** Klares und flüssiges UI mit Highlighting der gültigen Züge des ausgewählten Steins.
-* **Move Validation:** Integrierte Erkennung von Schach und Schachmatt-Situationen.
+* **Multiplayer über Wlan:** Simples lokales verbinden von Server und Client im selben Netzwerk. 
+* **Grafische Oberfläche:** Simple Modular aufgebaute UI
+* **Move Validation:** Erkennt die einzelnen Züge und lässt nur Valide Züge zu.
 * **Modularer Aufbau:** Strikte Trennung von UI (Frontend) und der zugrundeliegenden Schach-Logik (Backend).
 
 ---
