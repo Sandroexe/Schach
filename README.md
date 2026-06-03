@@ -67,3 +67,43 @@ schach/
 | :---: | :--- | :--- |
 | <img src="https://github.com/Sandroexe.png" width="40" height="40" style="border-radius:50%;"> | **Sandro Exenberger** | [@Sandroexe](https://github.com/Sandroexe) |
 | <img src="https://github.com/chrisfly97.png" width="40" height="40" style="border-radius:50%;"> | **Christoph Widner** | [@chrisfly97](https://github.com/chrisfly97) |
+
+## Entwickler
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">Avatar</th>
+      <th align="left">Name</th>
+      <th align="left">GitHub</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/Sandroexe">
+          <img src="https://github.com/Sandroexe.png" width="40" height="40" style="border-radius:50%;" alt="Sandro">
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/Sandroexe" style="color: inherit; text-decoration: none;">
+          <strong>Sandro Exenberger</strong>
+        </a>
+      </td>
+      <td><a href="https://github.com/Sandroexe">@Sandroexe</a></td>
+    </tr>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/chrisfly97">
+          <img src="https://github.com/chrisfly97.png" width="40" height="40" style="border-radius:50%;" alt="Christoph">
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/chrisfly97" style="color: inherit; text-decoration: none;">
+          <strong>Christoph Widner</strong>
+        </a>
+      </td>
+      <td><a href="https://github.com/chrisfly97">@chrisfly97</a></td>
+    </tr>
+  </tbody>
+</table>
