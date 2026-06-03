@@ -18,6 +18,13 @@ class NetworkManager:
         
         self.connected = False
         self.connected_callback = None  # called (with no args) once connection is established
+        self.disconnected_callback = None  # Wird aufgerufen, wenn die Verbindung abbricht
+        
+        # Verbindungsdetails für die automatische Wiederverbindung
+        self.role = None  # Entweder 'server' oder 'client'
+        self.ip = None    # IP-Adresse des Servers (nur für Client)
+        self.port = None  # Port-Nummer
+        self.reconnecting = False  # Verhindert parallele Reconnect-Threads
 
     # Komplettes Speil Brett neu "Besetzen" also ned nur den move sondern alles nochmal aufzeichnen
     
@@ -29,11 +36,19 @@ class NetworkManager:
         """Register a function to call once the connection is established."""
         self.connected_callback = cb
 
+    def set_disconnected_callback(self, cb):
+        """Register a function to call when the connection is lost."""
+        self.disconnected_callback = cb
+
     def start_server(self, port=65432):
         """Bind, listen, and block until one client connects.
         
         Call this in a background thread so it does not block the GUI.
         """
+        # Speichere die Rolle und den Port für spätere Wiederverbindungen
+        self.role = 'server'
+        self.port = port
+        
         srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         srv.bind(('0.0.0.0', port))
@@ -56,6 +71,11 @@ class NetworkManager:
         
         Call this in a background thread so it does not block the GUI.
         """
+        # Speichere die Rolle, IP und den Port für spätere Wiederverbindungen
+        self.role = 'client'
+        self.ip = ip
+        self.port = port
+        
         try:
             self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             print(f"[Client] Connecting to {ip}:{port}...")
@@ -85,6 +105,8 @@ class NetworkManager:
             self.conn.sendall(msg.encode('utf-8'))
         except Exception as e:
             print(f"[Network] Send error: {e}")
+            self.connected = False
+            self._handle_disconnect()
 
     def _recv_loop(self):
         """Background thread: continuously reads incoming moves."""
@@ -95,6 +117,7 @@ class NetworkManager:
                 if not data:
                     print("[Network] Connection closed by peer.")
                     self.connected = False
+                    self._handle_disconnect()
                     break
                 buf += data
                 # Process all complete newline-delimited messages in the buffer.
@@ -116,4 +139,87 @@ class NetworkManager:
             except Exception as e:
                 print(f"[Network] Receive error: {e}")
                 self.connected = False
+                self._handle_disconnect()
                 break
+
+    def _handle_disconnect(self):
+        """Interne Methode: Wird aufgerufen, wenn die Verbindung verloren geht."""
+        # Nur ausführen, wenn wir tatsächlich als getrennt markiert sind und nicht bereits versuchen uns wiederzuverbinden
+        if not self.connected and not self.reconnecting:
+            self.reconnecting = True
+            
+            # Schließe alte Socket-Verbindungen sauber
+            if self.conn:
+                try:
+                    self.conn.close()
+                except Exception:
+                    pass
+                self.conn = None
+            
+            print("[Network] Verbindung verloren! Versuche Wiederverbindung...")
+            
+            # Benachrichtige die GUI über den Verbindungsabbruch
+            if self.disconnected_callback:
+                self.disconnected_callback()
+                
+            # Starte den Wiederverbindungsprozess in einem separaten Hintergrund-Thread
+            threading.Thread(target=self._reconnect_loop, daemon=True).start()
+
+    def _reconnect_loop(self):
+        """Hintergrund-Thread: Versucht alle 2 Sekunden, die Verbindung wiederherzustellen."""
+        import time
+        while not self.connected:
+            time.sleep(2)  # Wartezeit zwischen den Versuchen
+            print(f"[Network] Wiederverbindungsversuch als {self.role}...")
+            
+            if self.role == 'server':
+                try:
+                    # Als Server: Erneut einen Socket binden und auf den Client warten
+                    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    srv.bind(('0.0.0.0', self.port))
+                    srv.listen(1)
+                    
+                    self.conn, addr = srv.accept()
+                    srv.close()
+                    
+                    self.connected = True
+                    self.reconnecting = False
+                    print(f"[Server] Wiederverbindung erfolgreich! Client verbunden: {addr[0]}")
+                    
+                    # GUI benachrichtigen
+                    if self.connected_callback:
+                        self.connected_callback()
+                        
+                    # Empfangsthread neu starten
+                    threading.Thread(target=self._recv_loop, daemon=True).start()
+                    break
+                except Exception as e:
+                    print(f"[Server] Wiederverbindung fehlgeschlagen: {e}")
+                    
+            elif self.role == 'client':
+                try:
+                    # Als Client: Versuche die Verbindung zum Server IP/Port wieder aufzubauen
+                    self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    self.conn.connect((self.ip, self.port))
+                    
+                    self.connected = True
+                    self.reconnecting = False
+                    print(f"[Client] Wiederverbindung erfolgreich! Verbunden mit {self.ip}")
+                    
+                    # GUI benachrichtigen
+                    if self.connected_callback:
+                        self.connected_callback()
+                        
+                    # Empfangsthread neu starten
+                    threading.Thread(target=self._recv_loop, daemon=True).start()
+                    break
+                except Exception as e:
+                    print(f"[Client] Wiederverbindung fehlgeschlagen: {e}")
+                    # Socket aufräumen, damit wir im nächsten Durchlauf frisch beginnen können
+                    if self.conn:
+                        try:
+                            self.conn.close()
+                        except Exception:
+                            pass
+                        self.conn = None

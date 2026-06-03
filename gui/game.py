@@ -104,6 +104,10 @@ def show_game_window(mode, network, my_color):
     def click(event):
         global selected_pos
 
+        # Zugsperre: Klicks sind nur erlaubt, wenn die Verbindung aktiv ist
+        if not network.connected:
+            return
+
         # Zugsperre: Klicks sind nur erlaubt, wenn man am Zug ist
         if game.current_turn != my_color:
             return
@@ -167,10 +171,19 @@ def show_game_window(mode, network, my_color):
         root.after(0, lambda: handle_received_state(state))
 
     def on_connected():
+        # Label auf "Verbunden" setzen
         root.after(0, lambda: connection_label.config(text="Verbunden", fg="green"))
+        # Nach Wiederverbindung schicken wir den aktuellen Spielstand, falls wir am Zug sind
+        if game.current_turn == my_color:
+            root.after(0, send_game_state)
+
+    def on_disconnected():
+        # Label auf "Verbindung verloren..." setzen
+        root.after(0, lambda: connection_label.config(text="Verbindung verloren...", fg="red"))
 
     network.set_board_callback(on_board_received)
     network.set_connected_callback(on_connected)
+    network.set_disconnected_callback(on_disconnected)
 
     canvas.bind("<Button-1>", click)
     update_turn_label()
