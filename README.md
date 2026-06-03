@@ -59,14 +59,6 @@ schach/
 
 ---
 
-## Entwickler
-
-## Entwickler
-
-| | Name | GitHub |
-| :---: | :--- | :--- |
-| <img src="https://github.com/Sandroexe.png" width="40" height="40" style="border-radius:50%;"> | **Sandro Exenberger** | [@Sandroexe](https://github.com/Sandroexe) |
-| <img src="https://github.com/chrisfly97.png" width="40" height="40" style="border-radius:50%;"> | **Christoph Widner** | [@chrisfly97](https://github.com/chrisfly97) |
 
 ## Entwickler
 
