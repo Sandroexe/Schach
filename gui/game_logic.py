@@ -3,24 +3,21 @@ from gui.config import WHITE, BLACK
 class Game:
 
     def __init__(self):
-        self.pieces = {}  # Key: (col, row), Value: {"type": "pawn", "color": WHITE}
-        self.current_turn = WHITE # Weiß beginnt immer
+        self.pieces = {}
+        self.current_turn = WHITE
         self.reset_board()
 
     def reset_board(self):
         self.pieces.clear()
         self.current_turn = WHITE
 
-        # Figuren-Reihenfolge für die Grundlinie
         back_row = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
 
-        # Schwarz aufstellen (Reihe 0 und 1)
         for col, p_type in enumerate(back_row):
             self.pieces[(col, 0)] = {"type": p_type, "color": BLACK}
         for col in range(8):
             self.pieces[(col, 1)] = {"type": "pawn", "color": BLACK}
 
-        # Weiß aufstellen (Reihe 6 und 7)
         for col in range(8):
             self.pieces[(col, 6)] = {"type": "pawn", "color": WHITE}
         for col, p_type in enumerate(back_row):
@@ -30,40 +27,26 @@ class Game:
         return self.pieces.get((col, row))
 
     def move_piece(self, from_col, from_row, to_col, to_row):
-        # Holt die Figur vom Startfeld weg
         piece = self.pieces.pop((from_col, from_row), None)
         game_over_winner = None
 
         if piece:
-            # Prüfen, ob auf dem Zielfeld ein König steht
             target = self.pieces.get((to_col, to_row))
             if target and target["type"] == "king":
-                # Der aktuelle Spieler gewinnt, weil er den gegnerischen König schlägt
                 game_over_winner = self.current_turn
 
-            # Setzt die Figur auf das neue Feld
             self.pieces[(to_col, to_row)] = piece
 
-            # ==========================================================
-            # BAUERNTRANSFORMATION (PROMOTION)
-            # ==========================================================
             if piece["type"] == "pawn":
-                # Weiß (Christoph) erreicht die oberste Reihe (0)
                 if piece["color"] == WHITE and to_row == 0:
                     piece["type"] = "queen"
-                # Schwarz (Sandro) erreicht die unterste Reihe (7)
                 elif piece["color"] == BLACK and to_row == 7:
                     piece["type"] = "queen"
-            # ==========================================================
             
-            # Wechselt den Spieler
             self.current_turn = BLACK if self.current_turn == WHITE else WHITE
 
-        # Gibt zurück, ob jemand gewonnen hat (None, WHITE oder BLACK)
         return game_over_winner
 
-
-#================ CONTROLLER =================#
 
 class Controller:
 
@@ -73,7 +56,6 @@ class Controller:
         self.pieces = pieces
 
     def get_valid_moves(self, col, row):
-        """Berechnet alle erlaubten Felder für eine Figur auf (col, row)"""
         piece = self.game.get_piece_at(col, row)
         if not piece:
             return []
@@ -82,7 +64,6 @@ class Controller:
         color = piece["color"]
         valid_moves = []
 
-        # Richtungen für Läufer, Turm, Dame
         directions_orthogonal = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         directions_diagonal = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
 
@@ -90,14 +71,11 @@ class Controller:
             direction = -1 if color == WHITE else 1
             start_row = 6 if color == WHITE else 1
 
-            # 1 Schritt vorwärts
             if not self.game.get_piece_at(col, row + direction):
                 valid_moves.append((col, row + direction))
-                # 2 Schritte vom Startfeld
                 if row == start_row and not self.game.get_piece_at(col, row + 2 * direction):
                     valid_moves.append((col, row + 2 * direction))
             
-            # Schlagen diagonal
             for dc in [-1, 1]:
                 target = self.game.get_piece_at(col + dc, row + direction)
                 if target and target["color"] != color:
@@ -128,7 +106,7 @@ class Controller:
                     else:
                         if target["color"] != color:
                             valid_moves.append((c, r))
-                        break # Blockiert durch Figur
+                        break
                     c += dc
                     r += dr
 

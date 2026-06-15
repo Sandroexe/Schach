@@ -5,7 +5,6 @@ from gui.game import show_game_window
 
 
 def show_client_window():
-    """Display the client connection window."""
     window = tk.Tk()
     window.title("CHESS - Join Game")
     window.geometry("400x300")

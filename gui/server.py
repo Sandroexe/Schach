@@ -6,14 +6,12 @@ from gui.game import show_game_window
 
 
 def show_server_window():
-    """Display the server setup window and launch the game once a client connects."""
     window = tk.Tk()
     window.title("CHESS - Host Game")
     window.geometry("400x280")
     window.resizable(False, False)
     window.configure(bg="#f0f0f0")
 
-    # Title
     tk.Label(
         window, text="Host Game",
         font=("Arial", 28, "bold"), bg="#f0f0f0", fg="#333333"
@@ -24,7 +22,6 @@ def show_server_window():
         font=("Arial", 12), bg="#f0f0f0", fg="#666666"
     ).pack(pady=5)
 
-    # Show local IP so the opponent knows where to connect
     ip_address = get_ip_address()
     tk.Label(
         window, text=ip_address,
@@ -38,7 +35,6 @@ def show_server_window():
     status_label.pack(pady=5)
 
     def start_game():
-        """Create NetworkManager, start server in background, open game window."""
         button_start.config(state=tk.DISABLED, text="Waiting for client...")
         status_label.config(text="Listening on port 65432…")
 
@@ -46,7 +42,6 @@ def show_server_window():
 
         def run_server():
             net.start_server()
-            # Once connected, open the game window on the main thread
             window.after(0, lambda: launch_game(net))
 
         threading.Thread(target=run_server, daemon=True).start()

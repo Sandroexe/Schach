@@ -8,12 +8,10 @@ class Pieces:
         self.canvas = canvas
         base = os.path.dirname(os.path.abspath(__file__))
         self.images = {}
-        self.canvas_ids = {} # Merkt sich die ID der Bilder auf dem Canvas: (Spalte, Reihe) -> Canvas-ID
+        self.canvas_ids = {}
 
-        # Alle Figurentypen definieren
         piece_types = ["pawn", "knight", "bishop", "rook", "queen", "king"]
         
-        # Schleife lädt w_pawn.png, b_pawn.png, w_knight.png usw.
         for color_prefix, color_name in [("w_", WHITE), ("b_", "black")]:
             for p_type in piece_types:
                 filename = f"{color_prefix}{p_type}.png"
@@ -26,12 +24,10 @@ class Pieces:
                     print(f"Fehler beim Laden von {filename}: {e}. Stelle sicher, dass das Bild im 'images'-Ordner existiert!")
 
     def draw_all_pieces(self, game_pieces, feld):
-        # Zuerst alle alten Figuren vom Canvas löschen
         for cid in self.canvas_ids.values():
             self.canvas.delete(cid)
         self.canvas_ids.clear()
 
-        # Alle Figuren aus dem Spiel-Dictionary neu auf das Board zeichnen
         for (col, row), piece in game_pieces.items():
             key = f"{piece['color']}_{piece['type']}"
             if key in self.images:

@@ -8,13 +8,6 @@ from gui.pieces import Pieces
 selected_pos = None
 
 def show_game_window(mode, network, my_color):
-    """Zeigt das interaktive Schachspielfeld an.
-
-    Args:
-        mode:     'server' oder 'client' (für Server-/Client-Rolle).
-        network:  Instanz von NetworkManager.
-        my_color: 'white' oder 'black' (welches Team dieser Spieler steuert).
-    """
     global selected_pos
     selected_pos = None
 
@@ -25,11 +18,9 @@ def show_game_window(mode, network, my_color):
     frame = tk.Frame(root)
     frame.pack(padx=10, pady=10)
 
-    # Linke Seite: Das Spielfeld
     canvas = tk.Canvas(frame, width=400, height=400)
     canvas.grid(row=0, column=0)
 
-    # Rechte Seite: Die Info-Anzeige
     right_frame = tk.Frame(frame, padx=20)
     right_frame.grid(row=0, column=1, sticky="n")
 
@@ -38,7 +29,7 @@ def show_game_window(mode, network, my_color):
 
     turn_label = tk.Label(
         right_frame, 
-        text="Christoph ist dran", 
+        text="Server ist dran", 
         font=("Helvetica", 12), 
         bg="white", 
         fg="black", 
@@ -48,12 +39,10 @@ def show_game_window(mode, network, my_color):
     )
     turn_label.pack(pady=(0, 10))
 
-    # Info wer man selbst ist
-    role_text = "Du spielst als: " + ("Christoph (Weiß)" if my_color == WHITE else "Sandro (Schwarz)")
+    role_text = "Du spielst als: " + ("Server (Weiß)" if my_color == WHITE else "Client (Schwarz)")
     role_label = tk.Label(right_frame, text=role_text, font=("Helvetica", 10, "italic"))
     role_label.pack(pady=(0, 10))
 
-    # Verbindungsstatus-Label
     connection_label = tk.Label(
         right_frame,
         text="Verbunden" if network.connected else "Warten auf Verbindung...",
@@ -62,7 +51,6 @@ def show_game_window(mode, network, my_color):
     )
     connection_label.pack(pady=(0, 10))
 
-    # Initialisierung der Zeichenflächen und Spielzustände
     board = Board(canvas)
     game = Game()
     pieces = Pieces(canvas)
@@ -73,11 +61,10 @@ def show_game_window(mode, network, my_color):
 
     def update_turn_label():
         if game.current_turn == WHITE:
-            turn_label.config(text="Christoph ist dran", bg="white", fg="black")
+            turn_label.config(text="Server ist dran", bg="white", fg="black")
         else:
-            turn_label.config(text="Sandro ist dran", bg="black", fg="white")
+            turn_label.config(text="Client ist dran", bg="black", fg="white")
 
-    # Serialisiert das Spielfeld (Tupel-Keys in Strings umwandeln)
     def serialize_board_state(winner=None):
         serializable_pieces = {f"{c},{r}": p for (c, r), p in game.pieces.items()}
         return {
@@ -86,41 +73,33 @@ def show_game_window(mode, network, my_color):
             "winner": winner
         }
 
-    # Sendet den aktuellen Spielzustand an den Gegner
     def send_game_state(winner=None):
         state = serialize_board_state(winner)
         network.send_board_state(state)
 
-    # Zeigt das Gewinner-Pop-up und setzt das Spielfeld zurück
     def show_winner_popup(winner):
-        winner_name = "Christoph" if winner == WHITE else "Sandro"
-        messagebox.showinfo("Schachmatt!", f"König is down. {winner_name} hat gwonnen")
-        # Spiel zurücksetzen
+        winner_name = "Server" if winner == WHITE else "Client"
+        messagebox.showinfo("Schachmatt!", f"König is down. {winner_name} hat gewonnen")
         game.reset_board()
         pieces.draw_all_pieces(game.pieces, FELD)
         update_turn_label()
 
-    # Klick-Handler für das Bewegen und Auswählen der Figuren
     def click(event):
         global selected_pos
 
-        # Zugsperre: Klicks sind nur erlaubt, wenn die Verbindung aktiv ist
         if not network.connected:
             return
 
-        # Zugsperre: Klicks sind nur erlaubt, wenn man am Zug ist
         if game.current_turn != my_color:
             return
 
         col = event.x // FELD
         row = event.y // FELD
 
-        # 1. ZUG-LOGIK
         if selected_pos:
             valid_moves = controller.get_valid_moves(selected_pos[0], selected_pos[1])
             
             if (col, row) in valid_moves:
-                # Zug ausführen und prüfen, ob ein König geschlagen wurde
                 winner = game.move_piece(selected_pos[0], selected_pos[1], col, row)
                 
                 board.clear_marker()
@@ -128,17 +107,13 @@ def show_game_window(mode, network, my_color):
                 selected_pos = None
                 update_turn_label()
 
-                # Den aktualisierten Spielzustand senden
                 send_game_state(winner)
 
-                # Wenn ein König geschlagen wurde -> Game Over Pop-up!
                 if winner:
                     show_winner_popup(winner)
-                    # Sende anschließenden Reset-Zustand an den Gegner
                     send_game_state(None)
                 return
             
-        # 2. AUSWAHL-LOGIK
         piece = game.get_piece_at(col, row)
         if piece and piece["color"] == game.current_turn:
             selected_pos = (col, row)
@@ -147,7 +122,6 @@ def show_game_window(mode, network, my_color):
             board.clear_marker()
             selected_pos = None
 
-    # Verarbeitet den vom Gegner empfangenen Spielzustand
     def handle_received_state(state):
         new_pieces = {}
         for k, p in state.get("pieces", {}).items():
@@ -158,7 +132,6 @@ def show_game_window(mode, network, my_color):
         game.current_turn = state.get("current_turn", WHITE)
         winner = state.get("winner")
 
-        # UI aktualisieren
         board.clear_marker()
         pieces.draw_all_pieces(game.pieces, FELD)
         update_turn_label()
@@ -166,19 +139,15 @@ def show_game_window(mode, network, my_color):
         if winner:
             show_winner_popup(winner)
 
-    # Callbacks registrieren
     def on_board_received(state):
         root.after(0, lambda: handle_received_state(state))
 
     def on_connected():
-        # Label auf "Verbunden" setzen
         root.after(0, lambda: connection_label.config(text="Verbunden", fg="green"))
-        # Nach Wiederverbindung schicken wir den aktuellen Spielstand, falls wir am Zug sind
         if game.current_turn == my_color:
             root.after(0, send_game_state)
 
     def on_disconnected():
-        # Label auf "Verbindung verloren..." setzen
         root.after(0, lambda: connection_label.config(text="Verbindung verloren...", fg="red"))
 
     network.set_board_callback(on_board_received)

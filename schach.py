@@ -1,9 +1,6 @@
-# schach.py
-
 print("Starting Chess application...")
 
 try:
-    # Versuche, die notwendigen Module zu importieren
     from gui.menu import show_menu
     from gui.server import show_server_window
     from gui.client import show_client_window
@@ -12,10 +9,8 @@ except ImportError as e:
     exit(1)
 
 
-
 def start_app():
     try:
-        # Menü zur mode Auswahl anzeigen bzw. starten
         mode = show_menu()
 
         if mode == "server":
@@ -34,7 +29,6 @@ def start_app():
 
     except Exception as e:
         print(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
-
 
 
 if __name__ == "__main__":

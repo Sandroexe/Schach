@@ -1,10 +1,3 @@
-"""Chess board state management.
-
-Pieces are stored as single characters:
-  Uppercase = White:  P R N B Q K
-  Lowercase = Black:  p r n b q k
-"""
-
 SYMBOLS = {
     "P": "♙", "R": "♖", "N": "♘", "B": "♗", "Q": "♕", "K": "♔",
     "p": "♟", "r": "♜", "n": "♞", "b": "♝", "q": "♛", "k": "♚",
@@ -24,15 +17,12 @@ INITIAL_BOARD = [
 
 class ChessBoard:
     def __init__(self):
-        # Deep copy so INITIAL_BOARD is never mutated.
         self.board = [row[:] for row in INITIAL_BOARD]
 
     def get(self, row, col):
-        """Return the piece at (row, col), or None if empty."""
         return self.board[row][col]
 
     def move(self, from_pos, to_pos):
-        """Move the piece at from_pos to to_pos. No legality check."""
         fr, fc = from_pos
         tr, tc = to_pos
         piece = self.board[fr][fc]
@@ -40,7 +30,6 @@ class ChessBoard:
         self.board[fr][fc] = None
 
     def symbol(self, piece):
-        """Return the Unicode chess symbol for a piece character."""
         return SYMBOLS.get(piece, "")
 
     def is_white(self, piece):
@@ -50,7 +39,6 @@ class ChessBoard:
         return piece is not None and piece.islower()
 
     def owns(self, piece, color):
-        """Return True if piece belongs to the given color ('white' or 'black')."""
         if piece is None:
             return False
         if color == "white":
@@ -58,7 +46,6 @@ class ChessBoard:
         return self.is_black(piece)
 
     def find_king(self, color):
-        """Return (row, col) of the king for the given color."""
         target = "K" if color == "white" else "k"
         for r in range(8):
             for c in range(8):
@@ -67,12 +54,10 @@ class ChessBoard:
         return None
 
     def is_in_check(self, color):
-        """Return True if the given color's king is currently in check."""
         king_pos = self.find_king(color)
         if king_pos is None:
             return False
         opponent = "black" if color == "white" else "white"
-        # Check if any opponent piece can capture the king.
         for r in range(8):
             for c in range(8):
                 piece = self.board[r][c]
@@ -82,10 +67,6 @@ class ChessBoard:
         return False
 
     def _can_attack(self, fr, fc, tr, tc):
-        """Return True if the piece at (fr, fc) can attack square (tr, tc).
-        
-        Basic attack patterns only (no en-passant, no castling).
-        """
         piece = self.board[fr][fc]
         if piece is None:
             return False
@@ -123,7 +104,6 @@ class ChessBoard:
         return False
 
     def _clear_path(self, fr, fc, tr, tc):
-        """Return True if there are no pieces between (fr,fc) and (tr,tc)."""
         sr = (0 if tr == fr else (1 if tr > fr else -1))
         sc = (0 if tc == fc else (1 if tc > fc else -1))
         r, c = fr + sr, fc + sc
