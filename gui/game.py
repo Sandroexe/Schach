@@ -66,7 +66,14 @@ def show_game_window(mode, network, my_color):
             turn_label.config(text="Client ist dran", bg="black", fg="white")
 
     def serialize_board_state(winner=None):
+        # 1. ISSUE-LÖSUNG: JSON-Einschränkung umgehen.
+        # Da JSON-Dictionaries nur Strings als Schlüssel (Keys) erlauben,
+        # wandeln wir das Python-Koordinaten-Tupel (col, row) in einen Text-String "col,row" um.
+        # Beispiel: (4, 7) wird zu "4,7".
         serializable_pieces = {f"{c},{r}": p for (c, r), p in game.pieces.items()}
+        
+        # 2. Den gesamten Spielstatus als Dictionary zurückgeben.
+        # Dieses enthält das Spielfeld, den aktuellen Spieler und evtl. den Gewinner.
         return {
             "pieces": serializable_pieces,
             "current_turn": game.current_turn,
@@ -124,22 +131,32 @@ def show_game_window(mode, network, my_color):
 
     def handle_received_state(state):
         new_pieces = {}
+        # 1. ISSUE-LÖSUNG: String-Koordinaten wieder zurück in Tupel-Koordinaten umwandeln.
+        # k ist der String-Key (z.B. "4,7"), p ist das Figur-Dictionary (Typ, Farbe).
         for k, p in state.get("pieces", {}).items():
-            col_str, row_str = k.split(",")
+            col_str, row_str = k.split(",") # String am Komma aufteilen -> ["4", "7"]
+            # Die Strings in Integer umwandeln und als Tupel-Key (4, 7) ins neue Dictionary eintragen
             new_pieces[(int(col_str), int(row_str))] = p
         
+        # 2. Den lokalen Spielzustand mit den empfangenen Netzwerk-Daten überschreiben
         game.pieces = new_pieces
         game.current_turn = state.get("current_turn", WHITE)
         winner = state.get("winner")
 
+        # 3. GUI aktualisieren (alte Marker löschen, Figuren neu zeichnen, Label updaten)
         board.clear_marker()
         pieces.draw_all_pieces(game.pieces, FELD)
         update_turn_label()
 
+        # 4. Falls das Paket meldet, dass ein König gefallen ist (winner gesetzt), Sieges-Popup anzeigen
         if winner:
             show_winner_popup(winner)
 
     def on_board_received(state):
+        # ISSUE-LÖSUNG: Thread-Sicherheit.
+        # Diese Funktion wird vom Netzwerk-Thread im Hintergrund aufgerufen.
+        # Da Tkinter (GUI) nicht thread-sicher ist, schieben wir das Update
+        # mit `.after(0, ...)` sicher zurück auf den Haupt-Thread der GUI!
         root.after(0, lambda: handle_received_state(state))
 
     def on_connected():
