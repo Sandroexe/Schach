@@ -6,5 +6,6 @@ COLOR2 = "#7C4C3E"
 
 WINDOW_TITLE = "Schach Stable"
 
+# Teams
 WHITE = "white"
 BLACK = "black"
